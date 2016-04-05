@@ -1,0 +1,43 @@
+r7 is touched in the following bytes:
+
+522 (NOT IT):
+* conditional jump to byte 1093 if this is True (nonzero)
+* seems to be in self-test code
+* jumps if any register is True
+* prints "nonzero reg" and halts
+
+
+5452:
+	conditional jump to byte 5605 if this is false (zero)
+
+	at 5605, does the following:
+		* push r0,r1,r2
+		* r0 = 29545
+		* r1 = 1531
+		* r2 = 7419 + 2428 = 9847
+		* CALL 1458
+		at 1458, does:
+			* 
+	if we don't jump:
+		
+
+
+5524
+	* r0 = r7
+	* r1 = 25866
+	* r2 = 32767
+	* push r3
+	* r3 = 29241
+	* CALL 1841
+
+6044:
+	* CALL 6027 with R1 set to R7 val
+
+	
+FUNCTIONS:
+1458:
+	* called from several places
+
+1841:
+	* reads from mem at location r3 + 1
+	* 
