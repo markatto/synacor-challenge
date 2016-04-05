@@ -1,7 +1,11 @@
+#! /usr/bin/env python
 import sys
+import datetime
+import signal
 import inspect
 import struct
 import collections
+import pickle
 
 # VM implementing the architecture defined in the file "arch-spec"
 # arch-spec comes from https://challenge.synacor.com/
@@ -180,25 +184,27 @@ class Machine(object):
         self.pc += instruction_size
         instruction(self, *args)
 
+    def save_state(self, signum, frame):
+        timestamp = str(datetime.datetime.now())
+        with open('saves/%s' % timestamp, 'w') as f:
+            pickle.dump(self, f)
+        print("SAVED STATE. TIMESTAMP: %s" % timestamp)
 
-def test1():
-    m = Machine()
-    m.memory = [9,32768,32769,4,19,32768]
-    m.registers[1] = 49
-    for i in range(6):
-        print(m.pc)
-        print(m.registers)
-        print(m.memory)
-        m.do_instruction()
+    def run(self):
+        # set up save handling
 
-def test2():
-    m = Machine()
-    m.load_program()
-    while True:
-        #print(m.pc)
-        #print(m.registers)
-        #print(m.memory[m.pc:m.pc+10])
-        m.do_instruction()
+        signal.signal(signal.SIGUSR1, self.save_state)
+
+        while True:
+            self.do_instruction()
+
 
 if __name__ == '__main__':
-    test2()
+    if len(sys.argv) == 1:
+        m = Machine()
+        m.load_program()
+    else:
+        filename = sys.argv[1]
+        with open(filename) as f:
+            m = pickle.load(f)
+    m.run()
