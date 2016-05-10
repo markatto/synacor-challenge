@@ -207,4 +207,6 @@ if __name__ == '__main__':
         filename = sys.argv[1]
         with open(filename) as f:
             m = pickle.load(f)
+
+    print(m.pc)
     m.run()

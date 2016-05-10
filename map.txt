@@ -1,0 +1,33 @@
+ladder (0)
+	* north => twisty maze of little passages (2)
+	* east => maze of alike little passages, all twisty (3)
+	* west => little maze of twisty passages, all alike (5)
+
+maze of little twisty passages, all alike (1)
+	* north => ladder
+	* south => twisty maze of little passages, all alike (2)
+
+twisty maze of little passages, all alike (2)
+	* north => maze of little twisty passages (1)
+	* south => ladder (0)
+
+maze of alike little passages, all twisty (3)
+	north => maze of alike twisty passages, all little (4)
+	south => 
+	east => grue
+	west => ladder (0)
+
+maze of alike twisty passages, all little (4)
+	north => maze of little twisty passages, all alike (1)
+	
+little maze of twisty passages, all alike (5)
+	north => little maze of twisty passages (5)
+	south => twisty alike of little passages, all maze (6)
+
+twisty alike of little passages, all maze (6)
+	north => 
+	south =>
+	east =>
+	west =>
+
+code: tpISulbbqgEz
