@@ -54,8 +54,8 @@ class Machine(object):
         ''' set register a to value of <b> '''
         self.registers[self.eval_reg(a)] = self.eval_num(b)
     def i_push(self, a):
-        ''' push register a onto the stack '''
-        self.stack.append(self.registers[self.eval_reg(a)])
+        ''' push the value of <a> onto the stack '''
+        self.stack.append(self.eval_num(a))
     def i_pop(self, a):
         ''' pop stack into register a '''
         self.r[self.eval_reg(a)] = self.stack.pop()
