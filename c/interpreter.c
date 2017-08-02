@@ -11,50 +11,51 @@
 #define BUFFER_SIZE           256            // size of the input buffer
 #define DISTINCT_INSTRUCTIONS 22             // how many instructions there are
 
-#define instruction(name) void i_## name (uint16_t *registers, uint16_t *memory, uint16_t *stack, size_t *stack_pos, size_t *pc)
-
 char *filename = "../challenge.bin";  // TODO read from argv
+
+struct Machine {
+    uint16_t registers[REGISTER_COUNT];
+    uint16_t memory[INT_SIZE];
+    uint16_t stack[STACK_SIZE];
+    uint16_t input_buffer[BUFFER_SIZE];
+    size_t buffer_pos;
+    size_t stack_pos;
+    size_t pc;
+};
 
 void load_file(uint16_t *memory, const char *filename);
 uint16_t eval_reg(uint16_t num);
 uint16_t eval_num(uint16_t *registers, uint16_t num);
+uint16_t read_arg(struct Machine *m);
 
-struct machine {
-    uint16_t registers[REGISTER_COUNT];
-    uint16_t memory[INT_SIZE];
-    uint16_t stack[STACK_SIZE];
-    uint16_t stack_pos;
-    uint16_t pc;
-};
-
-// instruction forward declarations TODO move these to a .h file
-instruction(halt);
-instruction(set);
-instruction(push);
-instruction(pop);
-instruction(eq);
-instruction(gt);
-instruction(jmp);
-instruction(jt);
-instruction(jf);
-instruction(add);
-instruction(mult);
-instruction(mod);
-instruction(and);
-instruction(or);
-instruction(not);
-instruction(rmem);
-instruction(wmem);
-instruction(call);
-instruction(ret);
-instruction(out);
-instruction(in);
-instruction(noop);
+// instruction forward declarations
+void i_halt (struct Machine *m);
+void i_set (struct Machine *m);
+void i_push (struct Machine *m);
+void i_pop (struct Machine *m);
+void i_eq (struct Machine *m);
+void i_gt (struct Machine *m);
+void i_jmp (struct Machine *m);
+void i_jt (struct Machine *m);
+void i_jf (struct Machine *m);
+void i_add (struct Machine *m);
+void i_mult (struct Machine *m);
+void i_mod (struct Machine *m);
+void i_and (struct Machine *m);
+void i_or (struct Machine *m);
+void i_not (struct Machine *m);
+void i_rmem (struct Machine *m);
+void i_wmem (struct Machine *m);
+void i_call (struct Machine *m);
+void i_ret (struct Machine *m);
+void i_out (struct Machine *m);
+void i_in (struct Machine *m);
+void i_noop (struct Machine *m);
 
 // TODO: move this out of this file
 // TODO: change it to use a "machine struct"
 
-void (*instructions[DISTINCT_INSTRUCTIONS])(uint16_t *registers, uint16_t *memory, uint16_t *stack, size_t *stack_pos, size_t *pc) = {
+void (*instructions[DISTINCT_INSTRUCTIONS])(struct Machine *m) = {
     i_halt, // 0
     i_set,  // 1
     i_push, // 2
@@ -80,20 +81,10 @@ void (*instructions[DISTINCT_INSTRUCTIONS])(uint16_t *registers, uint16_t *memor
 };
 
 int main() {
-    uint16_t memory[INT_SIZE]          = {0};
-    uint16_t registers[REGISTER_COUNT] = {0};
-    uint16_t stack[STACK_SIZE]         = {0};
-    uint16_t input_buffer[BUFFER_SIZE] = {0};
-    size_t stack_pos  = 0; // current stack size
-    size_t buffer_pos = 0; // current input buffer size
-    size_t pc         = 0; // program counter
-
-    load_file(memory, filename);
-
+    struct Machine machine = {{0},{0},{0},{0},0,0,0};
+    load_file(machine.memory, filename);
     while (true) {
-        instructions[memory[pc]](
-            registers, memory, stack, &stack_pos, &pc
-        );
+        instructions[machine.memory[machine.pc++]](&machine);
     }
 }
 
@@ -119,6 +110,7 @@ uint16_t eval_reg(uint16_t num) {
 }
 
 uint16_t eval_num(uint16_t *registers, uint16_t num) {
+    // TODO document this moar better
     assert(num <= (MAX_INT + REGISTER_COUNT));
     // numbers 0..32767 mean a literal value
     if (num <= MAX_INT) {
@@ -127,150 +119,123 @@ uint16_t eval_num(uint16_t *registers, uint16_t num) {
     return registers[eval_reg(num)];
 }
 
-instruction(halt) {
-    *pc += 1;
+uint16_t read_arg(struct Machine *m) {
+    // read an argument and advance PC past it
+    uint16_t arg = m->memory[m->pc++];
+    return arg;
+}
+
+
+void i_halt (struct Machine *m) {
     exit(0);
 }
-instruction(set) {
-    *pc += 3;
-    registers[eval_reg(memory[*pc - 2])] = eval_num(registers, memory[*pc - 1]);
+void i_set (struct Machine *m) {
+    size_t reg   = eval_reg(read_arg(m));
+    size_t value = eval_num(m->registers, read_arg(m));
+    m->registers[reg] = value;
 }
-instruction(push) {
-    // TODO bounds checking
-    *pc += 2;
-    *stack_pos += 1;
-    stack[*stack_pos] = eval_num(registers, memory[*pc - 1]);
+void i_push (struct Machine *m) {
+    m->stack[++m->stack_pos] = eval_num(m->registers, read_arg(m));
 }
-instruction(pop) {
-    // TODO bounds checking
-    *pc += 2;
-    registers[eval_reg(memory[*pc - 1])] = stack[*stack_pos];
-    *stack_pos -= 1;
+void i_pop (struct Machine *m) {
+    m->registers[eval_reg(read_arg(m))] = m->stack[m->stack_pos--];
 }
-instruction(eq) {
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-    registers[reg_num] = x == y;
+void i_eq (struct Machine *m) {
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = x == y;
 }
-instruction(gt) {
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-    registers[reg_num] = x > y;
+void i_gt (struct Machine *m) {
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = x > y;
 }
-instruction(jmp) {
-    *pc += 2;
-    *pc = (size_t) eval_num(registers, memory[*pc - 1]);
+void i_jmp (struct Machine *m) {
+    m->pc = eval_num(m->registers, read_arg(m));
 }
-instruction(jt) {
-    *pc += 3;
-    if (eval_num(registers, memory[*pc -2]) != 0) {
-        *pc = (size_t) eval_num(registers, memory[*pc - 1]);
-    }
+void i_jt (struct Machine *m) {
+    uint16_t condition = eval_num(m->registers, read_arg(m));
+    uint16_t target    = eval_num(m->registers, read_arg(m));
+    if (condition != 0)
+        m->pc = target;
 }
-instruction(jf) {
-    *pc += 3;
-    if (eval_num(registers, memory[*pc -2]) == 0) {
-        *pc = (size_t) eval_num(registers, memory[*pc - 1]);
-    }
+void i_jf (struct Machine *m) {
+    uint16_t condition = eval_num(m->registers, read_arg(m));
+    uint16_t target    = eval_num(m->registers, read_arg(m));
+    if (condition == 0)
+        m->pc = target;
 }
-instruction(add) {
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-
-    registers[(size_t) reg_num] = (x + y) % INT_SIZE;
+void i_add (struct Machine *m) {
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = (x + y) % INT_SIZE;
 }
-instruction(mult) {
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-
-    registers[(size_t) reg_num] = (x * y) % INT_SIZE;
+void i_mult (struct Machine *m) {
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m-> registers[reg_num] = (x * y) % INT_SIZE;
 }
-instruction(mod) {
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-
-    registers[(size_t) reg_num] = (x % y) % INT_SIZE;
+void i_mod (struct Machine *m) {
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = (x % y) % INT_SIZE;
 }
-instruction(and) {
+void i_and (struct Machine *m) {
     // bitwise and
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-    registers[reg_num] = (x & y) % INT_SIZE;
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = (x & y) % INT_SIZE;
 }
-instruction(or) {
+void i_or (struct Machine *m) {
     // bitwise or
-    uint16_t reg_num, x, y;
-    *pc += 4;
-    // TODO macro or function for this eval_num copypasta
-    reg_num = eval_reg(memory[*pc - 3]);
-    x = eval_num(registers, memory[*pc - 2]);
-    y = eval_num(registers, memory[*pc - 1]);
-    registers[reg_num] = (x | y) % INT_SIZE;
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t x = eval_num(m->registers, read_arg(m));
+    uint16_t y = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = (x | y) % INT_SIZE;
 }
-instruction(not) {
+void i_not (struct Machine *m) {
     // bitwise not
-    uint16_t reg_num;
-    *pc += 3;
-    reg_num = eval_reg(memory[*pc - 2]);
-    registers[reg_num] = ((uint16_t) (~eval_num(registers, memory[*pc - 1])) % INT_SIZE);
+    size_t reg_num = eval_reg(read_arg(m));
+    uint16_t val = eval_num(m->registers, read_arg(m));
+    // cast because int promotion
+    m->registers[reg_num] = (uint16_t) ~val % INT_SIZE;
 }
-instruction(rmem) {
+void i_rmem (struct Machine *m) {
     // load memory into register
-    uint16_t reg_num;
-    *pc += 3;
-    reg_num = eval_reg(memory[*pc - 2]);
-    registers[reg_num] = memory[eval_num(registers, memory[*pc - 1])];
+    size_t reg_num = eval_reg(read_arg(m));
+    size_t mem_loc = eval_num(m->registers, read_arg(m));
+    m->registers[reg_num] = m->memory[mem_loc];
 }
-instruction(wmem) {
-    // write memory from register
-    uint16_t location;
-    uint16_t value;
-    *pc += 3;
-    location = eval_num(registers, memory[*pc - 2]);
-    value = eval_num(registers, memory[*pc - 1]);
-    memory[location] = value;
+void i_wmem (struct Machine *m) {
+    // write memory
+    size_t mem_loc = eval_num(m->registers, read_arg(m));
+    size_t value   = eval_num(m->registers, read_arg(m));
+    m->memory[mem_loc] = value;
 }
-instruction(call) {
-    // TODO bounds checking
-    *pc += 2;
-    *stack_pos += 1;
-    stack[*stack_pos] = *pc;
-    *pc = eval_num(registers, memory[*pc - 1]);
+void i_call (struct Machine *m) {
+    size_t dest = eval_num(m->registers, read_arg(m));
+    m->stack[++m->stack_pos] = m->pc;
+    m->pc = dest;
 }
-instruction(ret) {
-    *pc = stack[*stack_pos];
-    *stack_pos -= 1;
+
+void i_ret (struct Machine *m) {
+    m->pc = m->stack[m->stack_pos--];
 }
-instruction(out) {
-    *pc += 2;
-    printf("%c", (char) memory[*pc - 1]);
+void i_out (struct Machine *m) {
+    printf("%c", (char) read_arg(m));
 }
-instruction(in) {
+void i_in (struct Machine *m) {
     printf("in unimplemented!");
+    exit(0);
+    /*
+    printf("in unimplemented!");
+    */
 }
-instruction(noop) {
-    *pc += 1;
+void i_noop (struct Machine *m __attribute__((__unused__))) {
 }
