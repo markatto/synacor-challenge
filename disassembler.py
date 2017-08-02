@@ -40,5 +40,5 @@ while pos < len(data):
     try:
         pos += decode_instruction(pos)
     except Exception as e:
-        print("DATA: %d" % data[pos])
+        print("%d\tDATA\t%d" % (pos, data[pos]))
         pos += 1
