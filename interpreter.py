@@ -1,21 +1,15 @@
 #! /usr/bin/env python
+import array
 import sys
-import datetime
 import signal
 import inspect
-import struct
-import collections
 import pickle
+from datetime import datetime
 
 # VM implementing the architecture defined in the file "arch-spec"
 # arch-spec comes from https://challenge.synacor.com/
 
-#TODO: break out parsing code into a full assembler/disassembler
-
-#TODO: bitwise operators probably need more logic; python treats ints as
-# infinitely-long 2's complement signed-values, but we want unsigned
-
-INT_SIZE = 32768 # 2**15
+INT_SIZE = 2 ** 15
 MAX_INT = INT_SIZE - 1
 REGISTER_COUNT = 8
 class Machine(object):
@@ -23,52 +17,35 @@ class Machine(object):
         # 15-bit address space
         self.memory = [0] * INT_SIZE
         self.m = self.memory # short alias
-        # 8 registers
         self.registers = [0] * REGISTER_COUNT
         self.r = self.registers # alias
-        # can grow/shrink
-        # our imaginary computer has infinite magical stack space
         self.stack = []
         # program counter / instruction pointer
         self.pc = 0
-        # REMEMBER: ints wrap at 2**15 ; everything is % 32768
-
-        # this is really only a deque because it's more convenient
-        # to debug when strings aren't backwards in memory
-        self.input_buffer = collections.deque()
+        self.input_buffer = []
 
     def load_program(self, filename='challenge.bin'):
         ''' load the contents of a file into the start of memory '''
-
-        # Sadly the array.array binary loading silently uses unsigned
-        # longs even when you ask for unsigned shorts.
-        # Therefore, we hack together a super-long format string
-        # for the struct loader.
         with open(filename, 'rb') as f:
             data = f.read()
-        data = struct.unpack('<' + 'H' * (len(data) / 2), data)
+        data = array.array('H', data)
 
         #insert at the beginning of memory
         self.memory[:len(data)] = data
 
-
-    def eval_num(self, x):
-        #numbers 0..32767 mean a literal value
-        if x <= MAX_INT:
-            return x
-        # numbers 32768..32775 instead mean registers 0..7
-        if x <= MAX_INT + REGISTER_COUNT:
-            register = x - INT_SIZE
-            return self.registers[register]
-        assert False # illegal
-
     @staticmethod
     def eval_reg(x):
         ''' turn a "direct format number" into a register '''
-        if MAX_INT < x <= MAX_INT + REGISTER_COUNT:
-            return x - INT_SIZE
-        else:
-            assert False
+        assert MAX_INT < x <= MAX_INT + REGISTER_COUNT
+        return x - INT_SIZE
+
+    def eval_num(self, x):
+        assert x <= MAX_INT + REGISTER_COUNT
+        #numbers 0..32767 mean a literal value
+        if x <= MAX_INT:
+            return x
+        return self.registers[self.eval_reg(x)]
+
 
     def i_halt(self):
         ''' halt '''
@@ -84,10 +61,10 @@ class Machine(object):
         self.r[self.eval_reg(a)] = self.stack.pop()
     def i_eq(self, a, b, c):
         ''' <a> = 1 if b == c else 0 '''
-        self.r[self.eval_reg(a)] = 1 if self.eval_num(b) == self.eval_num(c) else 0
+        self.r[self.eval_reg(a)] = int(self.eval_num(b) == self.eval_num(c))
     def i_gt(self, a, b, c):
         ''' register a is 1 if b > c '''
-        self.r[self.eval_reg(a)] = 1 if self.eval_num(b) > self.eval_num(c) else 0
+        self.r[self.eval_reg(a)] = int(self.eval_num(b) > self.eval_num(c))
     def i_jmp(self, a):
         ''' jump to <a> '''
         self.pc = self.eval_num(a)
@@ -134,14 +111,12 @@ class Machine(object):
         self.pc = self.stack.pop()
     def i_out(self, a):
         ''' print char w/ ascii code <a> to stdout '''
-        #print("STDOUT: %s" % unichr(self.eval_num(a)))
-        #TODO: turn this on in the end
         sys.stdout.write(unichr(self.eval_num(a)))
     def i_in(self, a):
         ''' read a character from the terminal and write its ascii code to <a> '''
         if len(self.input_buffer) == 0:
-            self.input_buffer.extend(raw_input('Input: ') + "\n")
-        self.r[self.eval_reg(a)] = ord(self.input_buffer.popleft())
+            self.input_buffer = list(reversed(raw_input('Input: ') + "\n"))
+        self.r[self.eval_reg(a)] = ord(self.input_buffer.pop())
     def i_noop(self):
         ''' do nothing '''
         pass
@@ -178,7 +153,6 @@ class Machine(object):
             sys.exit(0)
 
         instruction = self.opcodes[self.memory[self.pc]]
-        # this is why python is cool
         instruction_size = len(inspect.getargspec(instruction).args)
         args = self.memory[self.pc + 1: self.pc + instruction_size]
         self.pc += instruction_size
@@ -192,12 +166,9 @@ class Machine(object):
 
     def run(self):
         # set up save handling
-
         signal.signal(signal.SIGUSR1, self.save_state)
-
         while True:
             self.do_instruction()
-
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
