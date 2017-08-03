@@ -7,9 +7,11 @@
 #define INT_SIZE              (1 << 15)      // 15-bit address space
 #define MAX_INT               (INT_SIZE - 1) // largest possible int
 #define REGISTER_COUNT        8              // number of registers
-#define STACK_SIZE            512            // how large the stack can grow
+#define STACK_SIZE            1024            // how large the stack can grow
 #define BUFFER_SIZE           256            // size of the input buffer
 #define DISTINCT_INSTRUCTIONS 22             // how many instructions there are
+
+const bool TRACE = false; // print debugging trace
 
 char *filename = "../challenge.bin";  // TODO read from argv
 
@@ -84,6 +86,13 @@ int main() {
     struct Machine machine = {{0},{0},{0},{0},0,0,0};
     load_file(machine.memory, filename);
     while (true) {
+        if (TRACE) {
+            printf("\nREGISTERS:");
+            for (int i=0; i<8; i++) {
+                printf(" %d", machine.registers[i]);
+            }
+            printf("\nPC: %zu\n", machine.pc);
+        }
         instructions[machine.memory[machine.pc++]](&machine);
     }
 }
@@ -126,7 +135,7 @@ uint16_t read_arg(struct Machine *m) {
 }
 
 
-void i_halt (struct Machine *m) {
+void i_halt (struct Machine *m __attribute__((__unused__))) {
     exit(0);
 }
 void i_set (struct Machine *m) {
@@ -228,7 +237,7 @@ void i_ret (struct Machine *m) {
     m->pc = m->stack[m->stack_pos--];
 }
 void i_out (struct Machine *m) {
-    printf("%c", (char) read_arg(m));
+    printf("%c", (char) eval_num(m->registers, read_arg(m)));
 }
 void i_in (struct Machine *m) {
     printf("in unimplemented!");

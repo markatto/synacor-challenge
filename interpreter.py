@@ -12,6 +12,8 @@ from datetime import datetime
 INT_SIZE = 2 ** 15
 MAX_INT = INT_SIZE - 1
 REGISTER_COUNT = 8
+TRACE = False
+
 class Machine(object):
     def __init__(self):
         # 15-bit address space
@@ -168,6 +170,9 @@ class Machine(object):
         # set up save handling
         signal.signal(signal.SIGUSR1, self.save_state)
         while True:
+            if TRACE:
+                print("\nREGISTERS: %s" % ' '.join(str(i) for i in self.r))
+                print("PC: %d" % self.pc)
             self.do_instruction()
 
 if __name__ == '__main__':
@@ -179,5 +184,4 @@ if __name__ == '__main__':
         with open(filename) as f:
             m = pickle.load(f)
 
-    print(m.pc)
     m.run()
