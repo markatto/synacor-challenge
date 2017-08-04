@@ -240,11 +240,10 @@ void i_out (struct Machine *m) {
     printf("%c", (char) eval_num(m->registers, read_arg(m)));
 }
 void i_in (struct Machine *m) {
-    printf("in unimplemented!");
-    exit(0);
-    /*
-    printf("in unimplemented!");
-    */
+    size_t reg_num = eval_reg(read_arg(m));
+    char c;
+    scanf("%c", &c);
+    m->registers[reg_num] = c;
 }
 void i_noop (struct Machine *m __attribute__((__unused__))) {
 }
