@@ -17,17 +17,15 @@ TRACE = False
 class Machine(object):
     def __init__(self):
         # 15-bit address space
-        self.memory = [0] * INT_SIZE
-        self.m = self.memory # short alias
-        self.registers = [0] * REGISTER_COUNT
-        self.r = self.registers # alias
+        self.m = self.memory = [0] * INT_SIZE
+        self.r = self.registers = [0] * REGISTER_COUNT
         self.stack = []
         # program counter / instruction pointer
         self.pc = 0
         self.input_buffer = []
 
     def load_program(self, filename='challenge.bin'):
-        ''' load the contents of a file into the start of memory '''
+        ''' Load the contents of a file into the start of memory. '''
         with open(filename, 'rb') as f:
             data = f.read()
         data = array.array('H', data)
@@ -36,8 +34,8 @@ class Machine(object):
         self.memory[:len(data)] = data
 
     @staticmethod
-    def eval_reg(x):
-        ''' turn a "direct format number" into a register '''
+    def eval_reg(x: int) -> int:
+        ''' Turn a "direct format number" into a register number. '''
         assert MAX_INT < x <= MAX_INT + REGISTER_COUNT
         return x - INT_SIZE
 
@@ -50,16 +48,16 @@ class Machine(object):
 
 
     def i_halt(self):
-        ''' halt '''
+        ''' Halt '''
         sys.exit(0)
     def i_set(self, a, b):
-        ''' set register a to value of <b> '''
+        ''' Set register a to value of <b>. '''
         self.registers[self.eval_reg(a)] = self.eval_num(b)
     def i_push(self, a):
-        ''' push the value of <a> onto the stack '''
+        ''' Push the value of <a> onto the stack. '''
         self.stack.append(self.eval_num(a))
     def i_pop(self, a):
-        ''' pop stack into register a '''
+        ''' Pop stack into register a. '''
         self.r[self.eval_reg(a)] = self.stack.pop()
     def i_eq(self, a, b, c):
         ''' <a> = 1 if b == c else 0 '''
