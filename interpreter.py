@@ -181,7 +181,7 @@ if __name__ == '__main__':
         m.load_program()
     else:
         filename = sys.argv[1]
-        with open(filename) as f:
+        with open(filename, 'rb') as f:
             m = pickle.load(f)
 
     m.run()
