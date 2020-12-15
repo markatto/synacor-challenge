@@ -27,7 +27,6 @@ class Machine(object):
         # program counter / instruction pointer
         self.pc = 0
         self.input_buffer = []
-        self.trace = False
 
     def load_program(self, filename='challenge.bin'):
         ''' Load the contents of a file into the start of memory. '''
@@ -116,11 +115,11 @@ class Machine(object):
         self.pc = self.stack.pop()
     def i_out(self, a):
         ''' print char w/ ascii code <a> to stdout '''
-        sys.stdout.write(unichr(self.eval_num(a)))
+        sys.stdout.write(chr(self.eval_num(a)))
     def i_in(self, a):
         ''' read a character from the terminal and write its ascii code to <a> '''
         if len(self.input_buffer) == 0:
-            self.input_buffer = list(reversed(raw_input('Input: ') + "\n"))
+            self.input_buffer = list(reversed(input('Input: ') + "\n"))
         self.r[self.eval_reg(a)] = ord(self.input_buffer.pop())
     def i_noop(self):
         ''' do nothing '''
@@ -158,7 +157,7 @@ class Machine(object):
             sys.exit(0)
 
         instruction = self.opcodes[self.memory[self.pc]]
-        instruction_size = len(inspect.getargspec(instruction).args)
+        instruction_size = len(inspect.signature(instruction).parameters)
         args = self.memory[self.pc + 1: self.pc + instruction_size]
         self.pc += instruction_size
         instruction(self, *args)
@@ -170,12 +169,9 @@ class Machine(object):
         logging.info("SAVED STATE. TIMESTAMP: %s" % timestamp)
 
     def run(self):
-        # set up save handling
-        signal.signal(signal.SIGUSR1, self.save_state)
         while True:
-            if self.trace:
-                print("\nREGISTERS: %s" % ' '.join(str(i) for i in self.r))
-                print("PC: %d" % self.pc)
+            logging.debug("\nREGISTERS: %s" % ' '.join(str(i) for i in self.r))
+            logging.debug("PC: %d" % self.pc)
             self.do_instruction()
 
 if __name__ == '__main__':
@@ -187,4 +183,7 @@ if __name__ == '__main__':
         with open(filename, 'rb') as f:
             m = pickle.load(f)
 
+    # set up save handling
+    signal.signal(signal.SIGUSR1, m.save_state)
+    # start running
     m.run()
