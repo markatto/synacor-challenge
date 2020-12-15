@@ -4,17 +4,21 @@ import sys
 import signal
 import inspect
 import pickle
+import logging
 from datetime import datetime
 
-# VM implementing the architecture defined in the file "arch-spec"
+# VM implementing the architecture defined in the file "arch-spec.txt"
 # arch-spec comes from https://challenge.synacor.com/
 
 INT_SIZE = 2 ** 15
 MAX_INT = INT_SIZE - 1
 REGISTER_COUNT = 8
-TRACE = False
 
 class Machine(object):
+    '''
+    Machine objects contain all the state of a virtual CPU, as well as the
+    attached memory and I/O.
+    '''
     def __init__(self):
         # 15-bit address space
         self.m = self.memory = [0] * INT_SIZE
@@ -23,6 +27,7 @@ class Machine(object):
         # program counter / instruction pointer
         self.pc = 0
         self.input_buffer = []
+        self.trace = False
 
     def load_program(self, filename='challenge.bin'):
         ''' Load the contents of a file into the start of memory. '''
@@ -149,7 +154,7 @@ class Machine(object):
 
     def do_instruction(self):
         if self.pc == len(self.memory):
-            print('EXECUTION REACHED END OF MEMORY')
+            logging.info('EXECUTION REACHED END OF MEMORY')
             sys.exit(0)
 
         instruction = self.opcodes[self.memory[self.pc]]
@@ -162,13 +167,13 @@ class Machine(object):
         timestamp = str(datetime.datetime.now())
         with open('saves/%s' % timestamp, 'w') as f:
             pickle.dump(self, f)
-        print("SAVED STATE. TIMESTAMP: %s" % timestamp)
+        logging.info("SAVED STATE. TIMESTAMP: %s" % timestamp)
 
     def run(self):
         # set up save handling
         signal.signal(signal.SIGUSR1, self.save_state)
         while True:
-            if TRACE:
+            if self.trace:
                 print("\nREGISTERS: %s" % ' '.join(str(i) for i in self.r))
                 print("PC: %d" % self.pc)
             self.do_instruction()
