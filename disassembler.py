@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+ /usr/bin/env python
 import inspect
 import sys
 from interpreter import Machine, INT_SIZE, MAX_INT, REGISTER_COUNT
@@ -6,7 +6,7 @@ from interpreter import Machine, INT_SIZE, MAX_INT, REGISTER_COUNT
 # reuse the loader and some other stuff from the Machine class
 m = Machine()
 m.load_program()
-data = m.memory
+data = m.m
 
 def eval_num(x):
     assert x <= MAX_INT + REGISTER_COUNT

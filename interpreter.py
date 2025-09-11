@@ -21,8 +21,8 @@ class Machine(object):
     '''
     def __init__(self):
         # 15-bit address space
-        self.m = self.memory = [0] * INT_SIZE
-        self.r = self.registers = [0] * REGISTER_COUNT
+        self.m = [0] * INT_SIZE
+        self.r = [0] * REGISTER_COUNT
         self.stack = []
         # program counter / instruction pointer
         self.pc = 0
@@ -35,7 +35,7 @@ class Machine(object):
         data = array.array('H', data)
 
         #insert at the beginning of memory
-        self.memory[:len(data)] = data
+        self.m[:len(data)] = data
 
     @staticmethod
     def eval_reg(x: int) -> int:
@@ -48,7 +48,7 @@ class Machine(object):
         #numbers 0..32767 mean a literal value
         if x <= MAX_INT:
             return x
-        return self.registers[self.eval_reg(x)]
+        return self.r[self.eval_reg(x)]
 
 
     def i_halt(self):
@@ -56,7 +56,7 @@ class Machine(object):
         sys.exit(0)
     def i_set(self, a, b):
         ''' Set register a to value of <b>. '''
-        self.registers[self.eval_reg(a)] = self.eval_num(b)
+        self.r[self.eval_reg(a)] = self.eval_num(b)
     def i_push(self, a):
         ''' Push the value of <a> onto the stack. '''
         self.stack.append(self.eval_num(a))
@@ -100,10 +100,10 @@ class Machine(object):
         self.r[self.eval_reg(a)] = (~self.eval_num(b)) % INT_SIZE
     def i_rmem(self, a, b):
         ''' read memory at address <b> and write it to <a> '''
-        self.r[self.eval_reg(a)] = self.memory[self.eval_num(b)]
+        self.r[self.eval_reg(a)] = self.m[self.eval_num(b)]
     def i_wmem(self, a, b):
         ''' write the value from <b> into memory at address <a>'''
-        self.memory[self.eval_num(a)] = self.eval_num(b)
+        self.m[self.eval_num(a)] = self.eval_num(b)
     def i_call(self, a):
         ''' write the address of the next instruction to the stack and jump to <a> '''
         self.stack.append(self.pc)
@@ -152,13 +152,13 @@ class Machine(object):
     ]
 
     def do_instruction(self):
-        if self.pc == len(self.memory):
+        if self.pc == len(self.m):
             logging.info('EXECUTION REACHED END OF MEMORY')
             sys.exit(0)
 
-        instruction = self.opcodes[self.memory[self.pc]]
+        instruction = self.opcodes[self.m[self.pc]]
         instruction_size = len(inspect.signature(instruction).parameters)
-        args = self.memory[self.pc + 1: self.pc + instruction_size]
+        args = self.m[self.pc + 1: self.pc + instruction_size]
         self.pc += instruction_size
         instruction(self, *args)
 
