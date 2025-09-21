@@ -2,10 +2,11 @@
 import array
 import sys
 import signal
-import inspect
 import pickle
 import logging
+import types
 from datetime import datetime
+from inspect import signature, getfullargspec
 
 # VM implementing the architecture defined in the file "arch-spec.txt"
 # arch-spec comes from https://challenge.synacor.com/
@@ -14,11 +15,40 @@ INT_SIZE = 2 ** 15
 MAX_INT = INT_SIZE - 1
 REGISTER_COUNT = 8
 
+
+class Opcode:
+    '''
+    TODO make words
+    '''
+    def __init__(self, num: int, impl: callable):
+        self.num = num
+        self.impl = impl
+        self.name = impl.__name__.lstrip('i_')
+        self.params = getfullargspec(impl).args[1:]  # Skip 'self'
+        self.arity = len(self.params)
+        self.doc = (impl.__doc__ or '').strip()
+        # TODO: Add instance-specific profiling stats
+
+    def __call__(self, *args, **kwargs):
+        return self.impl(*args, **kwargs)
+
 class Machine(object):
     '''
     Machine objects contain all the state of a virtual CPU, as well as the
     attached memory and I/O.
     '''
+    opcode_specs = {}  # Class-level dict: opcode_num -> function
+
+    @classmethod
+    def opcode(cls, num):
+        '''Decorator for registering opcodes'''
+        def decorator(func):
+            if num in cls.opcode_specs:
+                raise ValueError(f"Duplicate opcode {num}: {func.__name__} vs {cls.opcode_specs[num].__name__}")
+            cls.opcode_specs[num] = func
+            return func
+        return decorator
+
     def __init__(self):
         # 15-bit address space
         self.m = [0] * INT_SIZE
@@ -27,6 +57,13 @@ class Machine(object):
         # program counter / instruction pointer
         self.pc = 0
         self.input_buffer = []
+
+        # Build instance-specific opcode list, binding the methods
+        max_opcode = max(self.opcode_specs.keys())
+        self.opcodes = [None] * (max_opcode + 1)
+        for num, func in self.opcode_specs.items():
+            bound_method = types.MethodType(func, self)
+            self.opcodes[num] = Opcode(num, bound_method)
 
     def load_program(self, filename='challenge.bin'):
         ''' Load the contents of a file into the start of memory. '''
@@ -157,7 +194,7 @@ class Machine(object):
             sys.exit(0)
 
         instruction = self.opcodes[self.m[self.pc]]
-        instruction_size = len(inspect.signature(instruction).parameters)
+        instruction_size = len(signature(instruction).parameters)
         args = self.m[self.pc + 1: self.pc + instruction_size]
         self.pc += instruction_size
         instruction(self, *args)
