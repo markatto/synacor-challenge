@@ -244,9 +244,9 @@ static void i_out (struct Machine *m) {
 }
 static void i_in (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
-    char c;
-    scanf("%c", &c);
-    m->registers[reg_num] = c;
+    int c = getchar();
+    if (c == EOF) c = 0;
+    m->registers[reg_num] = (uint16_t)(unsigned char)c;
 }
 static void i_noop (struct Machine *m __attribute__((__unused__))) {
 }
