@@ -98,19 +98,27 @@ int main(int argc, char *argv[]) {
 static void load_file(uint16_t *memory, const char *filename) {
     FILE *file = fopen(filename, "rb");
     if (!file) {
-        printf("failed to open file: %s\n", filename);
+        printf("i/o error on %s\n", filename);
         exit(1);
     }
-    fseek(file, 0, SEEK_END);
+
+    if (fseek(file, 0, SEEK_END) != 0) goto close_and_die;
+
     long file_size = ftell(file);
-    if (file_size == -1) {
-        printf("failed to get file size: %s\n", filename);
-        fclose(file);
-        exit(1);
-    }
-    fseek(file, 0, SEEK_SET);
-    fread(memory, 1, (size_t)file_size, file);
-    fclose(file);
+    if (file_size == -1) goto close_and_die;
+
+    if (fseek(file, 0, SEEK_SET) != 0) goto close_and_die;
+
+    size_t bytes_read = fread(memory, 1, (size_t)file_size, file);
+    if (bytes_read != (size_t)file_size) goto close_and_die;
+
+    (void)fclose(file);
+    return;
+
+close_and_die:
+    printf("i/o error on %s\n", filename);
+    (void)fclose(file);
+    exit(1);
 }
 
 static uint16_t eval_reg(uint16_t num) {
