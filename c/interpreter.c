@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define INT_SIZE              (1 << 15)      // 15-bit address space
+#define INT_SIZE              (1U << 15)     // 15-bit address space
 #define MAX_INT               (INT_SIZE - 1) // largest possible int
 #define REGISTER_COUNT        8              // number of registers
 #define STACK_SIZE            1024            // how large the stack can grow
@@ -98,17 +98,20 @@ int main(void) {
 }
 
 static void load_file(uint16_t *memory, const char *filename) {
-    uint64_t file_size;
-    FILE * file;
-    file = fopen(filename, "rb");
+    FILE *file = fopen(filename, "rb");
     if (!file) {
         printf("failed to open file: %s\n", filename);
         exit(1);
     }
     fseek(file, 0, SEEK_END);
-    file_size = ftell(file);
-    rewind(file);
-    fread(memory, file_size, 1, file);
+    long file_size = ftell(file);
+    if (file_size == -1) {
+        printf("failed to get file size: %s\n", filename);
+        fclose(file);
+        exit(1);
+    }
+    fseek(file, 0, SEEK_SET);
+    fread(memory, 1, (size_t)file_size, file);
     fclose(file);
 }
 
