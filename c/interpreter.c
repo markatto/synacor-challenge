@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define INT_SIZE              (1U << 15)     // 15-bit address space
+#define INT_SIZE              (1U << 15U)     // 15-bit address space
 #define MAX_INT               (INT_SIZE - 1) // largest possible int
 #define REGISTER_COUNT        8              // number of registers
 #define STACK_SIZE            1024            // how large the stack can grow
