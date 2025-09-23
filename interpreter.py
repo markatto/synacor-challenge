@@ -36,7 +36,7 @@ class Opcode:
     def __init__(self, num: int, impl: Callable[..., Any]) -> None:
         self.num: int = num
         self.impl: Callable[..., Any] = impl
-        self.name: str = impl.__name__.lstrip('i_')
+        self.name: str = impl.__name__[2:] if impl.__name__.startswith('i_') else impl.__name__
         self.params: List[str] = getfullargspec(impl).args[1:]  # Skip 'self'
         self.arity: int = len(self.params)
         self.doc: str = (impl.__doc__ or '').strip()
