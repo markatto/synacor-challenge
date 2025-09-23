@@ -13,14 +13,11 @@
 
 const bool TRACE = false; // print debugging trace
 
-char *filename = "../challenge.bin";  // TODO read from argv
 
 struct Machine {
     uint16_t registers[REGISTER_COUNT];
     uint16_t memory[INT_SIZE];
     uint16_t stack[STACK_SIZE];
-    uint16_t input_buffer[BUFFER_SIZE];
-    size_t buffer_pos;
     size_t stack_pos;
     size_t pc;
 };
@@ -82,7 +79,8 @@ void (*instructions[DISTINCT_INSTRUCTIONS])(struct Machine *m) = {
     i_noop, // 21
 };
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    const char *filename = (argc > 1) ? argv[1] : "../challenge.bin";
     struct Machine machine = {{0},{0},{0},{0},0,0,0};
     load_file(machine.memory, filename);
     while (true) {
