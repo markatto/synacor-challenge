@@ -1,37 +1,40 @@
- /usr/bin/env python
-import inspect
+#!/usr/bin/env python3
 import sys
-from interpreter import opcode, INT_SIZE, MAX_INT, REGISTER_COUNT
+from interpreter import Machine, INT_SIZE, MAX_INT, REGISTER_COUNT
 
 # reuse the loader and some other stuff from the Machine class
-m = opcode()
+m = Machine()
 m.load_program()
 data = m.m
 
+
 def eval_num(x):
     assert x <= MAX_INT + REGISTER_COUNT
-    #numbers 0..32767 mean a literal value
+    # numbers 0..32767 mean a literal value
     if x <= MAX_INT:
         return str(x)
     # numbers 32768..32775 instead mean registers 0..7
     register = x - INT_SIZE
-    return 'r%d' % register
+    return f'r{register}'
+
 
 def decode_instruction(pos):
     instruction_num = data[pos]
-    instruction = opcode.opcodes[instruction_num]
-    instruction_name = instruction.__name__[2:] # strip off the "I_" prefix
-    instruction_size = len(inspect.getargspec(instruction).args)
-    args = data[pos + 1: pos + instruction_size]
+    if instruction_num >= len(m.opcodes) or m.opcodes[instruction_num] is None:
+        raise IndexError(f'Invalid opcode: {instruction_num}')
+    instruction = m.opcodes[instruction_num]
+    instruction_name = instruction.name
+    instruction_size = 1 + instruction.arity
+    args = data[pos + 1 : pos + instruction_size]
 
     args = map(eval_num, args)
     # if out, convert to character
     if instruction_name == 'out':
         a = args[0]
         if a[0] != 'r':
-            args[0] = unichr(int(a))
+            args[0] = chr(int(a))
 
-    print("{}\t{}\t{}".format(pos, instruction_name.upper(), "\t".join(args)))
+    print('{}\t{}\t{}'.format(pos, instruction_name.upper(), '\t'.join(args)))
     return instruction_size
 
 
@@ -39,6 +42,6 @@ pos = int(sys.argv[1])
 while pos < len(data):
     try:
         pos += decode_instruction(pos)
-    except Exception as e:
-        print("%d\tDATA\t%d" % (pos, data[pos]))
+    except Exception:
+        print(f'{pos}\tDATA\t{data[pos]}')
         pos += 1
