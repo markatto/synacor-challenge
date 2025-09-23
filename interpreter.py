@@ -15,6 +15,18 @@ INT_SIZE = 2 ** 15
 MAX_INT = INT_SIZE - 1
 REGISTER_COUNT = 8
 
+# Module-level registry for opcodes
+opcode_specs = {}
+
+def opcode(num):
+    '''Decorator for registering opcodes'''
+    def decorator(func):
+        if num in opcode_specs:
+            raise ValueError(f"Duplicate opcode {num}: {func.__name__} vs {opcode_specs[num].__name__}")
+        opcode_specs[num] = func
+        return func
+    return decorator
+
 
 class Opcode:
     '''
@@ -37,17 +49,6 @@ class Machine(object):
     Machine objects contain all the state of a virtual CPU, as well as the
     attached memory and I/O.
     '''
-    opcode_specs = {}  # Class-level dict: opcode_num -> function
-
-    @classmethod
-    def opcode(cls, num):
-        '''Decorator for registering opcodes'''
-        def decorator(func):
-            if num in cls.opcode_specs:
-                raise ValueError(f"Duplicate opcode {num}: {func.__name__} vs {cls.opcode_specs[num].__name__}")
-            cls.opcode_specs[num] = func
-            return func
-        return decorator
 
     def __init__(self):
         # 15-bit address space
@@ -58,10 +59,11 @@ class Machine(object):
         self.pc = 0
         self.input_buffer = []
 
-        # Build instance-specific opcode list, binding the methods
-        max_opcode = max(self.opcode_specs.keys())
+        # Build instance-specific opcode list
+        max_opcode = max(opcode_specs.keys())
         self.opcodes = [None] * (max_opcode + 1)
-        for num, func in self.opcode_specs.items():
+
+        for num, func in opcode_specs.items():
             bound_method = types.MethodType(func, self)
             self.opcodes[num] = Opcode(num, bound_method)
 
@@ -88,116 +90,112 @@ class Machine(object):
         return self.r[self.eval_reg(x)]
 
 
+    @opcode(0)
     def i_halt(self):
         ''' Halt '''
         sys.exit(0)
+    @opcode(1)
     def i_set(self, a, b):
         ''' Set register a to value of <b>. '''
         self.r[self.eval_reg(a)] = self.eval_num(b)
+    @opcode(2)
     def i_push(self, a):
         ''' Push the value of <a> onto the stack. '''
         self.stack.append(self.eval_num(a))
+    @opcode(3)
     def i_pop(self, a):
         ''' Pop stack into register a. '''
         self.r[self.eval_reg(a)] = self.stack.pop()
+    @opcode(4)
     def i_eq(self, a, b, c):
         ''' <a> = 1 if b == c else 0 '''
         self.r[self.eval_reg(a)] = int(self.eval_num(b) == self.eval_num(c))
+    @opcode(5)
     def i_gt(self, a, b, c):
         ''' register a is 1 if b > c '''
         self.r[self.eval_reg(a)] = int(self.eval_num(b) > self.eval_num(c))
+    @opcode(6)
     def i_jmp(self, a):
         ''' jump to <a> '''
         self.pc = self.eval_num(a)
+    @opcode(7)
     def i_jt(self, a, b):
         ''' jump to location <b> if <a> is true (nonzero)'''
         if self.eval_num(a) != 0:
             self.pc = self.eval_num(b)
+    @opcode(8)
     def i_jf(self, a, b):
         ''' jump to location <b> if <a> is false (0)'''
         if self.eval_num(a) == 0:
             self.pc = self.eval_num(b)
+    @opcode(9)
     def i_add(self, a, b, c):
         ''' <a> = <b> + <c> '''
         self.r[self.eval_reg(a)] = (self.eval_num(b) + self.eval_num(c)) % INT_SIZE
+    @opcode(10)
     def i_mult(self, a, b, c):
         ''' <a> = <b> * <c> '''
         self.r[self.eval_reg(a)] = (self.eval_num(b) * self.eval_num(c)) % INT_SIZE
+    @opcode(11)
     def i_mod(self, a, b, c):
         ''' <a> = <b> % <c> '''
         self.r[self.eval_reg(a)] = (self.eval_num(b) % self.eval_num(c)) % INT_SIZE
+    @opcode(12)
     def i_and(self, a, b, c):
         ''' <a> = <b> & <c> '''
         self.r[self.eval_reg(a)] = (self.eval_num(b) & self.eval_num(c)) % INT_SIZE
+    @opcode(13)
     def i_or(self, a, b, c):
         ''' <a> = <b> | <c> '''
         self.r[self.eval_reg(a)] = (self.eval_num(b) | self.eval_num(c)) % INT_SIZE
+    @opcode(14)
     def i_not(self, a, b):
         ''' <a> = ~<b> '''
         self.r[self.eval_reg(a)] = (~self.eval_num(b)) % INT_SIZE
+    @opcode(15)
     def i_rmem(self, a, b):
         ''' read memory at address <b> and write it to <a> '''
         self.r[self.eval_reg(a)] = self.m[self.eval_num(b)]
+    @opcode(16)
     def i_wmem(self, a, b):
         ''' write the value from <b> into memory at address <a>'''
         self.m[self.eval_num(a)] = self.eval_num(b)
+    @opcode(17)
     def i_call(self, a):
         ''' write the address of the next instruction to the stack and jump to <a> '''
         self.stack.append(self.pc)
         self.pc = self.eval_num(a)
+    @opcode(18)
     def i_ret(self):
         ''' remove the top element from the stack and jump to it; empty stack = halt '''
         if len(self.stack) == 0:
             sys.exit(0)
         self.pc = self.stack.pop()
+    @opcode(19)
     def i_out(self, a):
         ''' print char w/ ascii code <a> to stdout '''
         sys.stdout.write(chr(self.eval_num(a)))
+    @opcode(20)
     def i_in(self, a):
         ''' read a character from the terminal and write its ascii code to <a> '''
         if len(self.input_buffer) == 0:
             self.input_buffer = list(reversed(input('Input: ') + "\n"))
         self.r[self.eval_reg(a)] = ord(self.input_buffer.pop())
+    @opcode(21)
     def i_noop(self):
         ''' do nothing '''
         pass
 
-    # lookup table for opcodes
-    opcodes = [
-            i_halt, #0
-            i_set,  #1
-            i_push, #2
-            i_pop,  #3
-            i_eq,   #4
-            i_gt,   #5
-            i_jmp,  #6
-            i_jt,   #7
-            i_jf,   #8
-            i_add,  #9
-            i_mult, #10
-            i_mod,  #11
-            i_and,  #12
-            i_or,   #13
-            i_not,  #14
-            i_rmem, #15
-            i_wmem, #16
-            i_call, #17
-            i_ret,  #18
-            i_out,  #19
-            i_in,   #20
-            i_noop, #21
-    ]
 
     def do_instruction(self):
         if self.pc == len(self.m):
             logging.info('EXECUTION REACHED END OF MEMORY')
             sys.exit(0)
 
-        instruction = self.opcodes[self.m[self.pc]]
-        instruction_size = len(signature(instruction).parameters)
-        args = self.m[self.pc + 1: self.pc + instruction_size]
-        self.pc += instruction_size
-        instruction(self, *args)
+        opcode = self.opcodes[self.m[self.pc]]
+        args = self.m[self.pc + 1: self.pc + 1 + opcode.arity]
+        self.pc += 1 + opcode.arity
+        opcode(*args)
 
     def save_state(self, signum, frame):
         timestamp = str(datetime.datetime.now())

@@ -1,10 +1,10 @@
  /usr/bin/env python
 import inspect
 import sys
-from interpreter import Machine, INT_SIZE, MAX_INT, REGISTER_COUNT
+from interpreter import opcode, INT_SIZE, MAX_INT, REGISTER_COUNT
 
 # reuse the loader and some other stuff from the Machine class
-m = Machine()
+m = opcode()
 m.load_program()
 data = m.m
 
@@ -19,7 +19,7 @@ def eval_num(x):
 
 def decode_instruction(pos):
     instruction_num = data[pos]
-    instruction = Machine.opcodes[instruction_num]
+    instruction = opcode.opcodes[instruction_num]
     instruction_name = instruction.__name__[2:] # strip off the "I_" prefix
     instruction_size = len(inspect.getargspec(instruction).args)
     args = data[pos + 1: pos + instruction_size]
