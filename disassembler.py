@@ -8,7 +8,7 @@ m.load_program()
 data = m.m
 
 
-def eval_num(x):
+def eval_num(x: int) -> str:
     assert x <= MAX_INT + REGISTER_COUNT
     # numbers 0..32767 mean a literal value
     if x <= MAX_INT:
@@ -18,18 +18,18 @@ def eval_num(x):
     return f'r{register}'
 
 
-def decode_instruction(pos):
+def decode_instruction(pos: int) -> int:
     instruction_num = data[pos]
-    if instruction_num >= len(m.opcodes) or m.opcodes[instruction_num] is None:
+    if instruction_num not in m.opcodes:
         raise IndexError(f'Invalid opcode: {instruction_num}')
     instruction = m.opcodes[instruction_num]
     instruction_name = instruction.name
     instruction_size = 1 + instruction.arity
-    args = data[pos + 1 : pos + instruction_size]
+    raw_args = data[pos + 1 : pos + instruction_size]
 
-    args = map(eval_num, args)
+    args = list(map(eval_num, raw_args))
     # if out, convert to character
-    if instruction_name == 'out':
+    if instruction_name == 'out' and args:
         a = args[0]
         if a[0] != 'r':
             args[0] = chr(int(a))
