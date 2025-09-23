@@ -3,17 +3,20 @@
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 def test_selftest_completion():
     """Test that the selftest runs and produces the zwrItUhCFSTC flag."""
     # Run the interpreter with empty input to trigger selftest
+    env = {'SELFTEST_ONLY': '1'}
     result = subprocess.run(
         [sys.executable, 'interpreter.py'],
         input='',
         text=True,
         capture_output=True,
-        cwd=Path(__file__).parent.parent
+        cwd=Path(__file__).parent.parent,
+        env={**dict(os.environ), **env}
     )
 
     # Check that it completed successfully

@@ -5,6 +5,7 @@ import signal
 import pickle
 import logging
 import types
+import os
 from datetime import datetime
 from inspect import getfullargspec
 from typing import Any
@@ -131,7 +132,7 @@ class Machine:
     def i_jmp(self, a: int) -> None:
         """jump to <a>"""
         target = self.eval_num(a)
-        if target == 2734:  # Halt after selftest completion
+        if os.getenv('SELFTEST_ONLY') and target == 2734:  # Halt after selftest completion
             sys.exit(0)
         self.pc = target
         if DEBUG:
