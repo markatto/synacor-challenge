@@ -1,0 +1,31 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "F",      # pyflakes - actual bugs
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "B",      # flake8-bugbear - catches mutable defaults, etc
+    "UP",     # pyupgrade - modernize syntax
+    "RUF",    # ruff-specific sanity checks
+    "TCH",    # moves type imports to TYPE_CHECKING block
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_reexport = true
+
+# Ignore missing imports for packages without type stubs
+[[tool.mypy.overrides]]
+module = [
+    "array",
+]
+ignore_missing_imports = true
