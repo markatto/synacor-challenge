@@ -113,7 +113,7 @@ void load_file(uint16_t *memory, const char *filename) {
 }
 
 uint16_t eval_reg(uint16_t num) {
-    assert(MAX_INT < num);
+    assert(num > MAX_INT);
     assert(num <= (MAX_INT + REGISTER_COUNT));
     return num - INT_SIZE;
 }
@@ -186,7 +186,7 @@ void i_mult (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
-    m-> registers[reg_num] = (x * y) % INT_SIZE;
+    m->registers[reg_num] = (x * y) % INT_SIZE;
 }
 void i_mod (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
