@@ -25,34 +25,34 @@ struct Machine {
     size_t pc;
 };
 
-void load_file(uint16_t *memory, const char *filename);
-uint16_t eval_reg(uint16_t num);
-uint16_t eval_num(uint16_t *registers, uint16_t num);
-uint16_t read_arg(struct Machine *m);
+static void load_file(uint16_t *memory, const char *filename);
+static uint16_t eval_reg(uint16_t num);
+static uint16_t eval_num(const uint16_t *registers, uint16_t num);
+static uint16_t read_arg(struct Machine *m);
 
 // instruction forward declarations
-void i_halt (struct Machine *m);
-void i_set (struct Machine *m);
-void i_push (struct Machine *m);
-void i_pop (struct Machine *m);
-void i_eq (struct Machine *m);
-void i_gt (struct Machine *m);
-void i_jmp (struct Machine *m);
-void i_jt (struct Machine *m);
-void i_jf (struct Machine *m);
-void i_add (struct Machine *m);
-void i_mult (struct Machine *m);
-void i_mod (struct Machine *m);
-void i_and (struct Machine *m);
-void i_or (struct Machine *m);
-void i_not (struct Machine *m);
-void i_rmem (struct Machine *m);
-void i_wmem (struct Machine *m);
-void i_call (struct Machine *m);
-void i_ret (struct Machine *m);
-void i_out (struct Machine *m);
-void i_in (struct Machine *m);
-void i_noop (struct Machine *m);
+static void i_halt (struct Machine *m);
+static void i_set (struct Machine *m);
+static void i_push (struct Machine *m);
+static void i_pop (struct Machine *m);
+static void i_eq (struct Machine *m);
+static void i_gt (struct Machine *m);
+static void i_jmp (struct Machine *m);
+static void i_jt (struct Machine *m);
+static void i_jf (struct Machine *m);
+static void i_add (struct Machine *m);
+static void i_mult (struct Machine *m);
+static void i_mod (struct Machine *m);
+static void i_and (struct Machine *m);
+static void i_or (struct Machine *m);
+static void i_not (struct Machine *m);
+static void i_rmem (struct Machine *m);
+static void i_wmem (struct Machine *m);
+static void i_call (struct Machine *m);
+static void i_ret (struct Machine *m);
+static void i_out (struct Machine *m);
+static void i_in (struct Machine *m);
+static void i_noop (struct Machine *m);
 
 // TODO: move this out of this file
 // TODO: change it to use a "machine struct"
@@ -82,7 +82,7 @@ void (*instructions[DISTINCT_INSTRUCTIONS])(struct Machine *m) = {
     i_noop, // 21
 };
 
-int main() {
+int main(void) {
     struct Machine machine = {{0},{0},{0},{0},0,0,0};
     load_file(machine.memory, filename);
     while (true) {
@@ -97,7 +97,7 @@ int main() {
     }
 }
 
-void load_file(uint16_t *memory, const char *filename) {
+static void load_file(uint16_t *memory, const char *filename) {
     uint64_t file_size;
     FILE * file;
     file = fopen(filename, "rb");
@@ -112,13 +112,13 @@ void load_file(uint16_t *memory, const char *filename) {
     fclose(file);
 }
 
-uint16_t eval_reg(uint16_t num) {
+static uint16_t eval_reg(uint16_t num) {
     assert(num > MAX_INT);
     assert(num <= (MAX_INT + REGISTER_COUNT));
     return num - INT_SIZE;
 }
 
-uint16_t eval_num(uint16_t *registers, uint16_t num) {
+static uint16_t eval_num(const uint16_t *registers, uint16_t num) {
     // TODO document this moar better
     assert(num <= (MAX_INT + REGISTER_COUNT));
     // numbers 0..32767 mean a literal value
@@ -128,122 +128,122 @@ uint16_t eval_num(uint16_t *registers, uint16_t num) {
     return registers[eval_reg(num)];
 }
 
-uint16_t read_arg(struct Machine *m) {
+static uint16_t read_arg(struct Machine *m) {
     // read an argument and advance PC past it
     uint16_t arg = m->memory[m->pc++];
     return arg;
 }
 
 
-void i_halt (struct Machine *m __attribute__((__unused__))) {
+static void i_halt (struct Machine *m __attribute__((__unused__))) {
     exit(0);
 }
-void i_set (struct Machine *m) {
+static void i_set (struct Machine *m) {
     size_t reg   = eval_reg(read_arg(m));
     size_t value = eval_num(m->registers, read_arg(m));
     m->registers[reg] = value;
 }
-void i_push (struct Machine *m) {
+static void i_push (struct Machine *m) {
     m->stack[++m->stack_pos] = eval_num(m->registers, read_arg(m));
 }
-void i_pop (struct Machine *m) {
+static void i_pop (struct Machine *m) {
     m->registers[eval_reg(read_arg(m))] = m->stack[m->stack_pos--];
 }
-void i_eq (struct Machine *m) {
+static void i_eq (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = x == y;
 }
-void i_gt (struct Machine *m) {
+static void i_gt (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = x > y;
 }
-void i_jmp (struct Machine *m) {
+static void i_jmp (struct Machine *m) {
     m->pc = eval_num(m->registers, read_arg(m));
 }
-void i_jt (struct Machine *m) {
+static void i_jt (struct Machine *m) {
     uint16_t condition = eval_num(m->registers, read_arg(m));
     uint16_t target    = eval_num(m->registers, read_arg(m));
     if (condition != 0)
         m->pc = target;
 }
-void i_jf (struct Machine *m) {
+static void i_jf (struct Machine *m) {
     uint16_t condition = eval_num(m->registers, read_arg(m));
     uint16_t target    = eval_num(m->registers, read_arg(m));
     if (condition == 0)
         m->pc = target;
 }
-void i_add (struct Machine *m) {
+static void i_add (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = (x + y) % INT_SIZE;
 }
-void i_mult (struct Machine *m) {
+static void i_mult (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = (x * y) % INT_SIZE;
 }
-void i_mod (struct Machine *m) {
+static void i_mod (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = (x % y) % INT_SIZE;
 }
-void i_and (struct Machine *m) {
+static void i_and (struct Machine *m) {
     // bitwise and
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = (x & y) % INT_SIZE;
 }
-void i_or (struct Machine *m) {
+static void i_or (struct Machine *m) {
     // bitwise or
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t x = eval_num(m->registers, read_arg(m));
     uint16_t y = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = (x | y) % INT_SIZE;
 }
-void i_not (struct Machine *m) {
+static void i_not (struct Machine *m) {
     // bitwise not
     size_t reg_num = eval_reg(read_arg(m));
     uint16_t val = eval_num(m->registers, read_arg(m));
     // cast because int promotion
     m->registers[reg_num] = (uint16_t) ~val % INT_SIZE;
 }
-void i_rmem (struct Machine *m) {
+static void i_rmem (struct Machine *m) {
     // load memory into register
     size_t reg_num = eval_reg(read_arg(m));
     size_t mem_loc = eval_num(m->registers, read_arg(m));
     m->registers[reg_num] = m->memory[mem_loc];
 }
-void i_wmem (struct Machine *m) {
+static void i_wmem (struct Machine *m) {
     // write memory
     size_t mem_loc = eval_num(m->registers, read_arg(m));
     size_t value   = eval_num(m->registers, read_arg(m));
     m->memory[mem_loc] = value;
 }
-void i_call (struct Machine *m) {
+static void i_call (struct Machine *m) {
     size_t dest = eval_num(m->registers, read_arg(m));
     m->stack[++m->stack_pos] = m->pc;
     m->pc = dest;
 }
 
-void i_ret (struct Machine *m) {
+static void i_ret (struct Machine *m) {
     m->pc = m->stack[m->stack_pos--];
 }
-void i_out (struct Machine *m) {
+static void i_out (struct Machine *m) {
     printf("%c", (char) eval_num(m->registers, read_arg(m)));
 }
-void i_in (struct Machine *m) {
+static void i_in (struct Machine *m) {
     size_t reg_num = eval_reg(read_arg(m));
     char c;
     scanf("%c", &c);
     m->registers[reg_num] = c;
 }
-void i_noop (struct Machine *m __attribute__((__unused__))) {
+static void i_noop (struct Machine *m __attribute__((__unused__))) {
 }

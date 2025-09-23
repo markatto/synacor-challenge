@@ -1,0 +1,17 @@
+# Compiled binaries
+interpreter
+interpreter-debug
+
+# Object files
+*.o
+*.obj
+
+# Debug info
+*.dSYM/
+
+# Core dumps
+core
+core.*
+
+# macOS
+.DS_Store
