@@ -81,7 +81,7 @@ void (*instructions[DISTINCT_INSTRUCTIONS])(struct Machine *m) = {
 
 int main(int argc, char *argv[]) {
     const char *filename = (argc > 1) ? argv[1] : "../challenge.bin";
-    struct Machine machine = {{0},{0},{0},{0},0,0,0};
+    struct Machine machine = {0};
     load_file(machine.memory, filename);
     while (true) {
         if (TRACE) {
