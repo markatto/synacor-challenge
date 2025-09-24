@@ -6,6 +6,7 @@ import pickle
 import logging
 import types
 import os
+from collections import deque
 from datetime import datetime
 from inspect import getfullargspec
 from typing import Any
@@ -68,7 +69,7 @@ class Machine:
         self.stack: list[int] = []
         # program counter / instruction pointer
         self.pc: int = 0
-        self.input_buffer: list[str] = []
+        self.input_buffer: deque[str] = deque()
 
         # Build instance-specific opcode dict
         self.opcodes: dict[int, Opcode] = {}
@@ -135,7 +136,7 @@ class Machine:
         if os.getenv('SELFTEST_ONLY') and target == 2734:  # Halt after selftest completion
             sys.exit(0)
         self.pc = target
-        if DEBUG:
+        if DEBUG: # TODO make this more gooder
             print(f'JMP {a} pc={self.pc}')
 
     @opcode(7)
@@ -212,8 +213,8 @@ class Machine:
     def i_in(self, a: int) -> None:
         """read a character from the terminal and write its ascii code to <a>"""
         if len(self.input_buffer) == 0:
-            self.input_buffer = list(reversed(input('Input: ') + '\n'))
-        self.r[self.eval_reg(a)] = ord(self.input_buffer.pop())
+            self.input_buffer.extend(input('Input: ') + '\n')
+        self.r[self.eval_reg(a)] = ord(self.input_buffer.popleft())
 
     @opcode(21)
     def i_noop(self) -> None:
