@@ -91,6 +91,8 @@ int main(int argc, char *argv[]) {
             }
             printf("\nPC: %zu\n", machine.pc);
         }
+        uint16_t opcode = machine.memory[machine.pc++];
+	if (opcode >= DISTINCT_INSTRUCTIONS) goto die;
         instructions[machine.memory[machine.pc++]](&machine);
     }
 }
@@ -118,6 +120,10 @@ static void load_file(uint16_t *memory, const char *filename) {
 close_and_die:
     printf("i/o error on %s\n", filename);
     (void)fclose(file);
+    exit(1);
+}
+
+die:
     exit(1);
 }
 
@@ -153,7 +159,9 @@ static void i_set (struct Machine *m) {
     m->registers[reg] = value;
 }
 static void i_push (struct Machine *m) {
-    m->stack[++m->stack_pos] = eval_num(m->registers, read_arg(m));
+    uint16_t new_stack_pos = m->stack[stack_pos] + 1;
+    if (new_stack_pos >= STACK_SIZE) goto die;
+    m->stack[new_stack_pos] = eval_num(m->registers, read_arg(m));
 }
 static void i_pop (struct Machine *m) {
     m->registers[eval_reg(read_arg(m))] = m->stack[m->stack_pos--];

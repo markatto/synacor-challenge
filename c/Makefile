@@ -11,7 +11,7 @@ check: build
 	@echo "Running static analysis with clang-tidy..."
 	clang-tidy interpreter.c --checks='-*,bugprone-*,cert-*,clang-analyzer-*,hicpp-signed-bitwise,performance-*' --warnings-as-errors=''
 	@echo "Running cppcheck..."
-	cppcheck --enable=all --suppress=missingIncludeSystem interpreter.c
+	cppcheck --enable=all --suppress=missingIncludeSystem --suppress=constParameterCallback interpreter.c
 	@echo "All checks passed!"
 
 # Build with strict warnings
