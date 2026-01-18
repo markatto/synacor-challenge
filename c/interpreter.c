@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
             printf("\nPC: %zu\n", machine.pc);
         }
         uint16_t opcode = machine.memory[machine.pc++];
-	if (opcode >= DISTINCT_INSTRUCTIONS) goto die;
+        if (opcode >= DISTINCT_INSTRUCTIONS) exit(1);
         instructions[machine.memory[machine.pc++]](&machine);
     }
 }
@@ -117,15 +117,13 @@ static void load_file(uint16_t *memory, const char *filename) {
     (void)fclose(file);
     return;
 
-close_and_die:
-    printf("i/o error on %s\n", filename);
-    (void)fclose(file);
-    exit(1);
+    close_and_die:
+        printf("i/o error on %s\n", filename);
+        (void)fclose(file);
+        exit(1);
 }
 
-die:
-    exit(1);
-}
+
 
 static uint16_t eval_reg(uint16_t num) {
     assert(num > MAX_INT);
@@ -159,9 +157,10 @@ static void i_set (struct Machine *m) {
     m->registers[reg] = value;
 }
 static void i_push (struct Machine *m) {
-    uint16_t new_stack_pos = m->stack[stack_pos] + 1;
-    if (new_stack_pos >= STACK_SIZE) goto die;
+    uint16_t new_stack_pos = m->stack_pos + 1;
+    if (new_stack_pos >= STACK_SIZE) exit(1);
     m->stack[new_stack_pos] = eval_num(m->registers, read_arg(m));
+    m->stack_pos = new_stack_pos;
 }
 static void i_pop (struct Machine *m) {
     m->registers[eval_reg(read_arg(m))] = m->stack[m->stack_pos--];
